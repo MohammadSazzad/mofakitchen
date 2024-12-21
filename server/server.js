@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 dotenv.config();
 
@@ -13,32 +13,19 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize OpenAI
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-});
+// Initialize Google Gemini API
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // API Routes
 app.post('/api/chat', async (req, res) => {
     try {
         const { message } = req.body;
-        
-        const completion = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
-            messages: [
-                {
-                    role: "system",
-                    content: "You are a helpful cooking assistant. Provide recipes with ingredients and step-by-step instructions."
-                },
-                {
-                    role: "user",
-                    content: `Suggest a ${message} recipe with ingredients and instructions.`
-                }
-            ],
-            max_tokens: 500
-        });
 
-        res.json({ recipe: completion.choices[0].message.content });
+        // Generate content using Gemini API
+        const result = await model.generateContent(`Suggest a ${message} recipe with ingredients and instructions.`);
+        
+        res.json({ recipe: result.response.text() });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Error processing your request' });
